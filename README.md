@@ -4,5 +4,5 @@ You should just be able to run this on a list of domains in a text file.
 
 
 If this doesnt work, you can try:
-
-for URL in ``cat domains.txt`` ; do echo $URL; curl -m 10 -s -I $1 "$URL" | grep HTTP/1.1 | awk {'print $2'};
+((( BACKTICKS AROUND cat domains.txt )))
+for URL in `cat domains.txt` ; do echo $URL; curl -m 10 -s -I $1 "$URL" | grep HTTP/1.1 | awk {'print $2'};
