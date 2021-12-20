@@ -12,4 +12,4 @@ for URL in `cat domains.txt` ; do echo $URL; curl -m 10 -s -I $1 "$URL" | grep H
 
 
 
-Hello John
+Hello Jon
