@@ -24,6 +24,7 @@ usage() {
 
 # Default values
 DEBUG_MODE=0
+DOMAIN=""
 
 # Parse command-line arguments
 if [[ "$#" -eq 0 ]]; then
