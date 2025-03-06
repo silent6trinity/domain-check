@@ -1,5 +1,4 @@
 # domain-check
-Bash script to grab the status codes of a list containing domains &amp; subdomains.
-You should just be able to run this on a list of domains in a text file.
+Look for a list of subdomains, then check if they're alive.
 
-`./domain-check $file-of-domains`
+`./domain-check -domain <blah.com>`
