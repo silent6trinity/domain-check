@@ -1,24 +1,69 @@
 #!/bin/bash
 
-# Check if a file was provided
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <subdomains_file>"
+# Ensure required tools are installed, if not - bail
+if ! command -v assetfinder &> /dev/null; then
+    echo "Error: assetfinder is not installed. Install it using: go install github.com/tomnomnom/assetfinder@latest"
     exit 1
 fi
 
-file="$1"
-
-# Check if the file exists
-if [ ! -f "$file" ]; then
-    echo "File not found: $file"
+if ! command -v curl &> /dev/null; then
+    echo "Error: curl is not installed. Install it using: sudo apt install curl (Linux) or brew install curl (Mac)"
     exit 1
 fi
 
-# Iterate through each line in the file
-while IFS= read -r subdomain; do
-    # Sending a web request to each subdomain with a 5-second timeout
-    status_code=$(curl -m 5 -o /dev/null -s -w "%{http_code}" "$subdomain")
+# Function to display usage
+usage() {
+    echo "Usage: $0 -domain <example.com>"
+    echo ""
+    echo "Options:"
+    echo "  -domain <domain>    Specify the target domain for subdomain discovery."
+    echo "  -h, --help          Show this help message."
+    exit 0
+}
 
-    # Output the URL and the status code
-    echo "$subdomain - $status_code"
-done < "$file"
+# Parse command-line arguments
+if [[ "$#" -eq 0 ]]; then
+    usage
+fi
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -domain) DOMAIN="$2"; shift ;;
+        -h|--help) usage ;;
+        *) echo "Unknown option: $1"; usage ;;
+    esac
+    shift
+done
+
+# Check if domain is provided
+if [[ -z "$DOMAIN" ]]; then
+    echo "Error: No domain specified."
+    usage
+fi
+
+# Temporary file for subdomains
+TEMP_FILE=$(mktemp)
+
+echo "[*] Finding subdomains for: $DOMAIN"
+
+# Find unique subdomains
+assetfinder --subs-only "$DOMAIN" | sort -u > "$TEMP_FILE"
+
+echo "[*] Checking HTTP/HTTPS status codes..."
+while read -r subdomain; do
+    # Try HTTPS first with a 1-second connection timeout
+    STATUS_CODE=$(curl -s -o /dev/null --connect-timeout 1 --max-time 2 -w "%{http_code}" "https://$subdomain")
+
+    # If HTTPS fails (000), try HTTP with a standard timeout
+    if [[ "$STATUS_CODE" -eq 000 ]]; then
+        STATUS_CODE=$(curl -s -o /dev/null --connect-timeout 2 --max-time 3 -w "%{http_code}" "http://$subdomain")
+    fi
+
+    # Only show 2xx or 3xx responses
+    if [[ "$STATUS_CODE" =~ ^(2|3)[0-9]{2}$ ]]; then
+        echo "$subdomain - $STATUS_CODE"
+    fi
+done < "$TEMP_FILE"
+
+# Cleanup
+rm "$TEMP_FILE"
